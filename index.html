@@ -29,7 +29,7 @@
     </div>
     
     <div class="chat-messages" id="chatMessages">
-        <div class="message ai-message">হ্যালো! আমি তোমার বিজ্ঞানের শিক্ষক। আজ তুমি বিজ্ঞানের কোন টপিকটি সহজে বুঝতে চাও? যেকোনো কিছু জিজ্ঞেস করতে পারো!</div>
+        <div class="message ai-message">হ্যালো! আমি তোমার বিজ্ঞানের শিক্ষক। আজ তুমি বিজ্ঞানের কোন টপিকটি সহজে বুঝতে চাও? যেকোনো কিছু জিজ্ঞেস করতে পারো, আমি লাইভ উত্তর দেব!</div>
     </div>
     
     <div class="chat-input-area">
@@ -49,16 +49,16 @@ async function sendMessage() {
 
     const loaderId = appendMessage('Teacher is thinking... 🧠', 'ai-message');
 
-    // এআই-কে ভালো রেসপন্স দেওয়ার জন্য প্রম্পট ইঞ্জিনিয়ারিং
-    const systemPrompt = "You are a friendly and expert AI Science Teacher. Explain the user's topic step by step with easy real-life analogies. Keep the language very simple, clear and engaging. Always write a detailed and complete response in natural Bengali language. Do not leave the answer incomplete.";
+    // সিস্টেম প্রম্পট যাতে সবসময় খাঁটি বাংলায় বিস্তারিত উত্তর আসে
+    const systemPrompt = "You are a friendly and expert AI Science Teacher. Explain the user's topic step by step with easy real-life analogies. Keep the language very simple, clear and engaging. Always write a detailed, informative, and complete response in natural Bengali language. Do not leave the answer incomplete.";
     
     const fullPrompt = `${systemPrompt}\n\nUser Question: ${messageText}`;
 
     try {
-        // ফ্রি রিয়েল-টাইম টেক্সট জেনারেটর যা CORS এরর ছাড়াই কাজ করে
-        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}`);
+        // নতুন রিলে গেটওয়ে যা ব্রাউজার রেস্ট্রিকশন ছাড়াই রিয়েল-টাইম টেক্সট রেসপন্স দেয়
+        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=openai`);
         
-        if (!response.ok) throw new Error("Network error");
+        if (!response.ok) throw new Error("API failed");
         
         const data = await response.text();
         document.getElementById(loaderId).remove();
@@ -70,8 +70,8 @@ async function sendMessage() {
         }
     } catch (error) {
         document.getElementById(loaderId).remove();
-        // সিকিউর ব্যাকআপ রেসপন্স
-        appendMessage(`💡 [AI Teacher]: "${messageText}" সম্পর্কে সহজ কথায় বলতে গেলে:\n\nবিজ্ঞানের এই বিষয়টি খুবই চমৎকার! এটি মূলত আমাদের প্রকৃতির একটি সুন্দর নিয়ম। নেটওয়ার্ক লোডের কারণে রিয়েল-টাইম চ্যাটে সমস্যা হলে তুমি সরাসরি huggingface.co/chat ওপেন করে এই প্রশ্নটি সার্চ করতে পারো, সেখানে আরও দ্রুত লাইভ উত্তর পেয়ে যাবে।`, 'ai-message');
+        // সিকিউর ব্যাকআপ রেসপন্স যদি কখনো ইন্টারনেট স্লো থাকে
+        appendMessage(`💡 [AI Teacher]: দুঃখিত, কানেকশনে কিছুটা সমস্যা হচ্ছে। বিজ্ঞানের এই বিষয়টি বিস্তারিত জানতে ব্রাউজারের অন্য ট্যাবে huggingface.co/chat ওপেন করে 'Science Teacher' লিখে সার্চ করতে পারো, সেখানে সরাসরি লাইভ উত্তর পেয়ে যাবে!`, 'ai-message');
     }
 }
 
@@ -81,7 +81,11 @@ function appendMessage(text, className) {
     const id = 'msg-' + Date.now();
     messageDiv.id = id;
     messageDiv.className = `message ${className}`;
-    messageDiv.innerHTML = text.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    
+    // ফরম্যাটিং ঠিক রাখার জন্য
+    let formattedText = text.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    messageDiv.innerHTML = formattedText;
+    
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return id;
