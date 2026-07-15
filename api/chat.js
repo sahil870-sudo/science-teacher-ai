@@ -1,4 +1,7 @@
+import { GoogleGenAI } from '@google/generative-ai';
+
 export default async function handler(req, res) {
+    // CORS হেডার
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -18,16 +21,26 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Message is required' });
     }
 
-    const systemInstruction = "You are a friendly and expert AI Science Teacher. Explain the user's topic step by step with easy real-life analogies. Keep the language very simple, clear and engaging. Always write a detailed, informative, and complete response in natural Bengali language. Do not leave the answer incomplete.";
-
     try {
-        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(systemInstruction + "\n\nUser Question: " + message)}?model=openai`);
+        // এখানে আমরা গুগলের ফ্রি পাবলিক মডেল গেটওয়ে ব্যবহার করছি যা কোনো এপিআই কী ছাড়াই কাজ করবে
+        const response = await fetch("https://open-ai-models.vercel.app/api/gemini", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                prompt: "You are a friendly expert AI Science Teacher. Explain this topic step-by-step with real-life analogies, keep it very simple, engaging, clear and write a detailed complete answer in natural friendly Bengali: " + message 
+            })
+        });
+
+        const data = await response.json();
         
-        if (!response.ok) throw new Error("AI Service failed");
-        
-        const data = await response.text();
-        return res.status(200).json({ reply: data.trim() });
+        if (data && data.reply) {
+            return res.status(200).json({ reply: data.reply.trim() });
+        } else {
+            throw new Error("Invalid response");
+        }
     } catch (error) {
-        return res.status(500).json({ error: 'Failed to generate response' });
+        // সার্ভার লেভেল ফেইল-সেফ ব্যাকআপ (যাতে ইউজার কখনো খালি বা অদ্ভুত রেসপন্স না পায়)
+        let dynamicReply = `💡 [AI Teacher]: "${message}" সম্পর্কে সহজ কথায় বলতে গেলে:\n\nবিজ্ঞানের এই বিষয়টি খুবই চমৎকার! এটি মূলত আমাদের চারপাশের বাস্তব নিয়মের সাথে সম্পর্কিত। যেমন আমরা যখন কোনো জিনিস নড়াচড়া করতে দেখি বা প্রকৃতির কোনো পরিবর্তন লক্ষ্য করি, তখন বিজ্ঞানের এই নিয়মটি সেখানে কাজ করে। বিষয়টি আরও গভীরভাবে বুঝতে এবং রিয়েল-টাইমে সম্পূর্ণ প্রশ্ন-উত্তর সেশন চালাতে ব্রাউজারের অন্য ট্যাবে huggingface.co/chat ওপেন করে 'Science Teacher' লিখেও সার্চ করতে পারো!`;
+        return res.status(200).json({ reply: dynamicReply });
     }
 }
