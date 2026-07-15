@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 AI Science Teacher</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f0f4f8; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; height: 90vh; }
+        .chat-container { width: 100%; max-width: 600px; height: 80vh; background: white; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { background: linear-gradient(135deg, #3498db, #2c3e50); color: white; padding: 20px; text-align: center; }
+        .chat-header h1 { margin: 0; font-size: 22px; }
+        .chat-header p { margin: 5px 0 0; font-size: 14px; opacity: 0.9; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; background: #f9fbfd; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
+        .user-message { background: #3498db; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .ai-message { background: #eaeff5; color: #2c3e50; align-self: flex-start; border-bottom-left-radius: 2px; white-space: pre-wrap; }
+        .chat-input-area { padding: 15px; background: white; border-top: 1px solid #e6ebf1; display: flex; gap: 10px; }
+        textarea { flex: 1; height: 44px; padding: 12px; border: 1px solid #ced4da; border-radius: 22px; resize: none; outline: none; font-size: 15px; box-sizing: border-box; }
+        button { background: #3498db; color: white; border: none; padding: 0 25px; border-radius: 22px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>🔬 Your AI Science Teacher</h1>
+        <p>বিজ্ঞানের যেকোনো কঠিন কনসেপ্ট জিজ্ঞেস করো, একদম সহজে বুঝিয়ে দেব।</p>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+        <div class="message ai-message">হ্যালো! আমি তোমার বিজ্ঞানের শিক্ষক। আজ তুমি কোন টপিকটি সহজে বুঝতে চাও? (যেমন: Inertia বা জড়তা কী?)</div>
+    </div>
+    
+    <div class="chat-input-area">
+        <textarea id="userInput" placeholder="এখানে তোমার প্রশ্নটি লেখো..."></textarea>
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+async function sendMessage() {
+    const inputField = document.getElementById('userInput');
+    const messageText = inputField.value.trim();
+    if (!messageText) return;
+
+    inputField.value = '';
+    appendMessage(messageText, 'user-message');
+
+    const loaderId = appendMessage('Teacher is thinking... 🧠', 'ai-message');
+
+    const systemInstruction = "You are a highly expert, patient, and friendly AI Science Teacher. Explain step-by-step with real-life analogies. Reply in Bengali if asked in Bengali/Banglish, or English if asked in English.";
+
+    try {
+        // কোনো টোকেন বা পারমিশন ছাড়া সরাসরি কাজ করা ওপেন ক্লাউডফ্লেয়ার ফ্রি এআই গেটওয়ে
+        const response = await fetch("https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                inputs: `<|im_start|>system\n${systemInstruction}<|im_end|>\n<|im_start|>user\n${messageText}<|im_end|>\n<|im_start|>assistant\n`,
+                parameters: { max_new_tokens: 800, temperature: 0.7 }
+            })
+        });
+
+        const data = await response.json();
+        document.getElementById(loaderId).remove();
+
+        let reply = "দুঃখিত, শিক্ষক এখন একটু ব্যস্ত আছেন। আবার চেষ্টা করো!";
+        if (data && data[0] && data[0].generated_text) {
+            const fullText = data[0].generated_text;
+            reply = fullText.split("<|im_start|>assistant\n")[1] || fullText;
+        } else if (data && data.generated_text) {
+            reply = data.generated_text;
+        }
+
+        appendMessage(reply.trim(), 'ai-message');
+    } catch (error) {
+        document.getElementById(loaderId).remove();
+        appendMessage("Hey! বিজ্ঞানের এই বিষয়ে বিস্তারিত জানতে ব্রাউজারের অন্য ট্যাবে huggingface.co/chat ওপেন করে 'Science Teacher' লিখে দেখতে পারো।", 'ai-message');
+    }
+}
+
+function appendMessage(text, className) {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    const id = 'msg-' + Date.now();
+    messageDiv.id = id;
+    messageDiv.className = `message ${className}`;
+    messageDiv.innerText = text;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return id;
+}
+</script>
+
+</body>
+</html>
