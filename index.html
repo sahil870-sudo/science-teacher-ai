@@ -29,7 +29,7 @@
     </div>
     
     <div class="chat-messages" id="chatMessages">
-        <div class="message ai-message">হ্যালো! আমি তোমার বিজ্ঞানের শিক্ষক। আজ তুমি বিজ্ঞানের কোন টপিকটি সহজে বুঝতে চাও? যেকোনো কিছু জিজ্ঞেস করতে পারো, আমি লাইভ উত্তর দেব!</div>
+        <div class="message ai-message">হ্যালো! আমি তোমার বিজ্ঞানের শিক্ষক। আজ তুমি বিজ্ঞানের কোন টপিকটি সহজে বুঝতে চাও? যেকোনো কিছু জিজ্ঞেস করো, আমি লাইভ উত্তর দেব!</div>
     </div>
     
     <div class="chat-input-area">
@@ -49,29 +49,25 @@ async function sendMessage() {
 
     const loaderId = appendMessage('Teacher is thinking... 🧠', 'ai-message');
 
-    // সিস্টেম প্রম্পট যাতে সবসময় খাঁটি বাংলায় বিস্তারিত উত্তর আসে
-    const systemPrompt = "You are a friendly and expert AI Science Teacher. Explain the user's topic step by step with easy real-life analogies. Keep the language very simple, clear and engaging. Always write a detailed, informative, and complete response in natural Bengali language. Do not leave the answer incomplete.";
-    
-    const fullPrompt = `${systemPrompt}\n\nUser Question: ${messageText}`;
-
     try {
-        // নতুন রিলে গেটওয়ে যা ব্রাউজার রেস্ট্রিকশন ছাড়াই রিয়েল-টাইম টেক্সট রেসপন্স দেয়
-        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(fullPrompt)}?model=openai`);
+        // আমাদের নিজস্ব সিকিউর Vercel ব্যাকঅ্যান্ড সার্ভারকে কল করা হচ্ছে
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: messageText })
+        });
         
-        if (!response.ok) throw new Error("API failed");
-        
-        const data = await response.text();
+        const data = await response.json();
         document.getElementById(loaderId).remove();
 
-        if (data && data.trim().length > 0) {
-            appendMessage(data.trim(), 'ai-message');
+        if (data && data.reply) {
+            appendMessage(data.reply, 'ai-message');
         } else {
-            throw new Error("Empty data");
+            throw new Error("Empty response");
         }
     } catch (error) {
         document.getElementById(loaderId).remove();
-        // সিকিউর ব্যাকআপ রেসপন্স যদি কখনো ইন্টারনেট স্লো থাকে
-        appendMessage(`💡 [AI Teacher]: দুঃখিত, কানেকশনে কিছুটা সমস্যা হচ্ছে। বিজ্ঞানের এই বিষয়টি বিস্তারিত জানতে ব্রাউজারের অন্য ট্যাবে huggingface.co/chat ওপেন করে 'Science Teacher' লিখে সার্চ করতে পারো, সেখানে সরাসরি লাইভ উত্তর পেয়ে যাবে!`, 'ai-message');
+        appendMessage("দুঃখিত, সার্ভারে লোড বেশি থাকায় উত্তর দিতে একটু সমস্যা হচ্ছে। দয়া করে আর একবার চেষ্টা করো!", 'ai-message');
     }
 }
 
@@ -82,7 +78,6 @@ function appendMessage(text, className) {
     messageDiv.id = id;
     messageDiv.className = `message ${className}`;
     
-    // ফরম্যাটিং ঠিক রাখার জন্য
     let formattedText = text.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     messageDiv.innerHTML = formattedText;
     
