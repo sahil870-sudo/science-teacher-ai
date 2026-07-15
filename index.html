@@ -49,26 +49,21 @@ async function sendMessage() {
 
     const loaderId = appendMessage('Teacher is thinking... 🧠', 'ai-message');
 
-    const fullPrompt = "You are a highly expert, patient, and friendly AI Science Teacher. Explain the following topic step-by-step with real-life analogies. Keep language simple. Reply in natural Bengali/Banglish if asked in Bengali, or simple English if asked in English. Topic: " + messageText;
-
     try {
-        // গুগলের ফ্রি ও ওপেন এআই সার্ভিস যা ফ্রন্টএন্ড থেকে ডিরেক্ট কাজ করে
-        const response = await fetch("https://open-ai-models.vercel.app/api/gemini", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: fullPrompt })
-        });
-
-        const data = await response.json();
+        // টেক্সট ইনপুট সরাসরি টেক্সট রেসপন্সে রূপান্তর করার ফ্রি গ্লোবাল গেটওয়ে
+        const response = await fetch(`https://text.pollinations.ai/${encodeURIComponent(messageText + " (Explain step by step as a friendly science teacher in natural friendly Bengali. Use everyday analogies, keep it simple, clear, and write a detailed complete answer.)")}`);
+        
+        const data = await response.text();
         document.getElementById(loaderId).remove();
 
-        let reply = data.reply || "দুঃখিত, শিক্ষক এখন একটু ব্যস্ত আছেন। আবার চেষ্টা করো!";
-        appendMessage(reply.trim(), 'ai-message');
+        if(data && data.trim().length > 0) {
+            appendMessage(data.trim(), 'ai-message');
+        } else {
+            throw new Error("Empty response");
+        }
     } catch (error) {
         document.getElementById(loaderId).remove();
-        // সিকিউরিটি ফেইলসেফ ব্যাকআপ
-        let backupReply = `💡 [AI Teacher]: "${messageText}" সম্পর্কে সহজ কথায় বলতে গেলে:\n\nএটি বিজ্ঞানের খুব মজার একটি কনসেপ্ট! যখন কোনো বস্তু যে অবস্থায় আছে সে অবস্থাতেই থাকতে চায়, তাকেই জড়তা বা Inertia বলে। যেমন: চলন্ত বাস হঠাৎ ব্রেক করলে আমরা সামনের দিকে ঝুঁকে পড়ি।`;
-        appendMessage(backupReply, 'ai-message');
+        appendMessage("দুঃখিত, শিক্ষক এই মুহূর্তে একটু ব্যস্ত আছেন। দয়া করে আর একবার চেষ্টা করো!", 'ai-message');
     }
 }
 
